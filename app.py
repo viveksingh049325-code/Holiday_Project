@@ -6,11 +6,16 @@ from datetime import datetime
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="AI Holiday Maximizer", layout="wide")
 
-st.title("🌴 AI Holiday Maximizer (India 2018 Edition)")
+st.title("🌴 AI Holiday Maximizer — India (2018)")
+st.caption("Plan smarter vacations by combining weekends, holidays, and minimal PTO.")
+
 st.markdown("""
-Maximize your vacation time! This tool finds the best holiday + weekend combinations
-based on your Indian holiday dataset.
+**How it works**
+- 📅 Detects weekends + public holidays  
+- 🧠 Finds optimal vacation windows  
+- 🏖 Maximizes break length per PTO day  
 """)
+
 
 # ---------------- DATA LOADING ----------------
 @st.cache_data
@@ -67,13 +72,24 @@ def get_global_rankings(df, pto_limit):
     )
 
 # ---------------- SIDEBAR ----------------
-st.sidebar.header("Preferences")
+st.sidebar.header("⚙️ Vacation Preferences")
+st.sidebar.caption("Adjust inputs to recalculate results instantly")
+
 annual_pto = st.sidebar.slider("Annual PTO Budget", 0, 30, 15)
 
 options = get_global_rankings(data, annual_pto)
+# --- Highlight best option ---
+if not options.empty:
+    best = options.iloc[0]
+    st.success(
+        f"🏆 Best Option: {best['Start Date'].date()} → {best['End Date'].date()} "
+        f"({best['Duration']} days, {best['PTO Cost']} PTO)"
+    )
+
 
 # ---------------- GLOBAL TABLE ----------------
-st.header("📊 Global Holiday Rankings")
+st.header("📊 Best Holiday Combinations")
+st.caption("Top-ranked vacation windows based on efficiency and duration")
 
 if not options.empty:
     st.dataframe(
@@ -82,6 +98,17 @@ if not options.empty:
     )
 else:
     st.warning("No valid combinations found.")
+# --- CSV Export ---
+if not options.empty:
+    csv_all = options.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="⬇ Download All Results (CSV)",
+        data=csv_all,
+        file_name="holiday_rankings_2018.csv",
+        mime="text/csv"
+    )
+  
 
 # ---------------- PERSONAL SEARCH ----------------
 st.divider()
