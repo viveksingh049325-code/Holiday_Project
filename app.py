@@ -80,11 +80,14 @@ annual_pto = st.sidebar.slider("Annual PTO Budget", 0, 30, 15)
 options = get_global_rankings(data, annual_pto)
 # --- Highlight best option ---
 if not options.empty:
-    best = options.iloc[0]
-    st.success(
-        f"🏆 Best Option: {best['Start Date'].date()} → {best['End Date'].date()} "
-        f"({best['Duration']} days, {best['PTO Cost']} PTO)"
-    )
+    best = matches.iloc[0]
+
+st.success("🏆 Best Recommendation")
+st.write(f"{best['Start Date'].date()} → {best['End Date'].date()}")
+st.write(f"{best['Duration']} days | PTO: {best['PTO Cost']}")
+
+st.subheader("Other Valid Options")
+st.dataframe(matches.head(5), width="stretch")
 
 
 # ---------------- GLOBAL TABLE ----------------
