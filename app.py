@@ -7,21 +7,19 @@ import os
 st.set_page_config(page_title="AI Holiday Maximizer", layout="wide")
 
 st.title("🌴 AI Holiday Maximizer — India")
-st.caption("Plan smarter vacations by combining weekends, holidays, and minimal PTO.")
+st.caption("Plan smarter vacations using weekends, holidays, and minimal PTO.")
 
 # ---------------- SIDEBAR ----------------
 st.sidebar.header("⚙️ Vacation Preferences")
 
 include_rh = st.sidebar.checkbox(
     "Include Restricted Holidays (RH)",
-    value=True,
-    help="If unchecked, RH will be treated as working days"
+    value=True
 )
 
 year = st.sidebar.selectbox(
     "Select Year",
-    options=[2018, 2026, 2027],
-    index=0
+    options=[2018, 2026, 2027]
 )
 
 annual_pto = st.sidebar.slider("Annual PTO Budget", 0, 30, 15)
@@ -51,7 +49,7 @@ def load_and_process_data(file_path, include_rh):
 
     return df
 
-# ---------------- ALGORITHM (FIXED 0-PTO LOGIC) ----------------
+# ---------------- ALGORITHM (WITH BRIDGE INTELLIGENCE) ----------------
 def get_global_rankings(df, pto_limit):
     results = []
     n = len(df)
@@ -69,15 +67,16 @@ def get_global_rankings(df, pto_limit):
 
             if df.iloc[j]["is_free"]:
                 duration = j - i + 1
+
                 # 🚫 Skip plain 2-day weekends
                 if duration <= 2 and pto_needed == 0 and window["is_holiday"].sum() == 0:
                     continue
 
-                # ✅ CORRECT 0-PTO HANDLING
-                if pto_needed == 0:
-                    efficiency = float("inf")
-                else:
-                    efficiency = duration / pto_needed
+                # Efficiency
+                efficiency = float("inf") if pto_needed == 0 else duration / pto_needed
+
+                # 🌉 Bridge Day Intelligence
+                is_bridge = (pto_needed == 1 and duration >= 4)
 
                 results.append({
                     "Start Date": df.iloc[i]["date"],
@@ -85,6 +84,7 @@ def get_global_rankings(df, pto_limit):
                     "Duration": duration,
                     "PTO Cost": pto_needed,
                     "Efficiency": efficiency,
+                    "Bridge Opportunity": is_bridge,
                     "Month": df.iloc[i]["month"]
                 })
 
@@ -93,23 +93,21 @@ def get_global_rankings(df, pto_limit):
     if results_df.empty:
         return results_df
 
-    # Sort correctly: 0-PTO (∞) first, then longer duration
     results_df = results_df.sort_values(
         by=["Efficiency", "Duration"],
         ascending=[False, False]
     )
 
-    # Display-friendly efficiency
     results_df["Efficiency Display"] = results_df["Efficiency"].apply(
         lambda x: "∞ (No PTO)" if x == float("inf") else round(x, 2)
     )
 
     return results_df
 
-# ---------------- DATA EXECUTION ----------------
+# ---------------- EXECUTION ----------------
 csv_file = f"{year}.csv"
 if not os.path.exists(csv_file):
-    st.error(f"Holiday data for {year} not available.")
+    st.error(f"Holiday data for {year} not found.")
     st.stop()
 
 data = load_and_process_data(csv_file, include_rh)
@@ -120,6 +118,7 @@ st.header("📊 Best Holiday Combinations")
 
 if not options.empty:
     best = options.iloc[0]
+
     st.success("🏆 Best Overall Recommendation")
     st.write(f"📅 {best['Start Date'].date()} → {best['End Date'].date()}")
     st.write(f"🕒 {best['Duration']} days | PTO: {best['PTO Cost']}")
@@ -127,19 +126,39 @@ if not options.empty:
     st.dataframe(
         options[[
             "Start Date", "End Date", "Duration",
-            "PTO Cost", "Efficiency Display", "Month"
+            "PTO Cost", "Efficiency Display",
+            "Bridge Opportunity", "Month"
         ]],
         width="stretch"
     )
 
     st.download_button(
-        "⬇ Download All Results (CSV)",
+        "⬇ Download Results (CSV)",
         options.to_csv(index=False).encode("utf-8"),
-        f"holiday_rankings_{year}.csv",
+        f"holiday_results_{year}.csv",
         "text/csv"
     )
 else:
     st.warning("No valid combinations found.")
+
+# ---------------- BRIDGE SECTION ----------------
+st.divider()
+st.header("🌉 Best Bridge Day Opportunities")
+
+bridges = options[options["Bridge Opportunity"]]
+
+if not bridges.empty:
+    st.info("These require **only 1 PTO** to unlock long breaks.")
+    st.dataframe(
+        bridges.head(10)[[
+            "Start Date", "End Date",
+            "Duration", "PTO Cost",
+            "Efficiency Display"
+        ]],
+        width="stretch"
+    )
+else:
+    st.write("No bridge opportunities found under current settings.")
 
 # ---------------- PERSONALIZED SEARCH ----------------
 st.divider()
@@ -148,11 +167,9 @@ st.header("🔍 Personalized Vacation Search")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    search_pto = st.number_input("Max PTO for trip", 0, 10, 1)
-
+    search_pto = st.number_input("Max PTO", 0, 10, 1)
 with col2:
-    min_days = st.number_input("Minimum break length", 1, 15, 4)
-
+    min_days = st.number_input("Min break length", 1, 15, 4)
 with col3:
     search_month = st.selectbox(
         "Month",
@@ -167,47 +184,92 @@ if st.button("Search"):
     ]
 
     if not matches.empty:
-        best_match = matches.iloc[0]
-
-        st.success("🏆 Best Personalized Recommendation")
-        st.write(f"📅 {best_match['Start Date'].date()} → {best_match['End Date'].date()}")
-        st.write(f"🕒 {best_match['Duration']} days | PTO: {best_match['PTO Cost']}")
-
-        if len(matches) > 1:
-            st.subheader("Other Valid Options")
-            st.dataframe(
-                matches.iloc[1:10][[
-                    "Start Date", "End Date", "Duration",
-                    "PTO Cost", "Efficiency Display"
-                ]],
-                width="stretch"
-            )
+        st.success("Matching combinations found")
+        st.dataframe(
+            matches[[
+                "Start Date", "End Date",
+                "Duration", "PTO Cost",
+                "Efficiency Display",
+                "Bridge Opportunity"
+            ]],
+            width="stretch"
+        )
     else:
-        st.error("No matching combinations found.")
+        st.error("No matching combinations.")
 
-# ---------------- VISUALS ----------------
+# ---------------- VISUAL ANALYTICS ----------------
 st.divider()
-st.header("📈 Holiday Insights")
+st.header("📈 Holiday Visual Insights")
 
-tab1, tab2 = st.tabs(["Efficiency Plot", "Timeline View"])
+tab1, tab2 = st.tabs(["Efficiency Map", "Timeline View"])
 
+# ---------- TAB 1: Efficiency Scatter ----------
 with tab1:
     if not options.empty:
-        fig, ax = plt.subplots()
-        ax.scatter(options["Duration"], options["Efficiency"])
-        ax.set_xlabel("Duration (days)")
-        ax.set_ylabel("Efficiency")
-        st.pyplot(fig)
+        fig, ax = plt.subplots(figsize=(10, 5))
 
+        # Separate bridge & non-bridge
+        bridges = options[options["Bridge Opportunity"]]
+        others = options[~options["Bridge Opportunity"]]
+
+        ax.scatter(
+            others["Duration"],
+            others["Efficiency"],
+            alpha=0.5,
+            label="Other combinations"
+        )
+
+        ax.scatter(
+            bridges["Duration"],
+            bridges["Efficiency"],
+            color="green",
+            s=80,
+            label="Bridge Opportunities (1 PTO)"
+        )
+
+        ax.set_xlabel("Total Break Duration (days)")
+        ax.set_ylabel("Efficiency (Days per PTO)")
+        ax.set_title("Holiday Efficiency Landscape")
+        ax.legend()
+
+        st.pyplot(fig)
+    else:
+        st.info("No data available for plotting.")
+
+# ---------- TAB 2: Timeline View ----------
 with tab2:
     if not options.empty:
         top10 = options.head(10).sort_values("Start Date")
+
         fig, ax = plt.subplots(figsize=(12, 5))
 
         for i, row in enumerate(top10.itertuples()):
-            ax.barh(i, (row.End_Date - row.Start_Date).days, left=row.Start_Date)
+            length = (row.End_Date - row.Start_Date).days
+            color = "green" if row._6 else "steelblue"  # Bridge highlight
+
+            ax.barh(
+                i,
+                length,
+                left=row.Start_Date,
+                color=color
+            )
+
+            ax.text(
+                row.Start_Date,
+                i,
+                f" {row.Duration} days",
+                va="center",
+                color="white",
+                fontsize=9
+            )
 
         ax.set_yticks(range(len(top10)))
-        ax.set_yticklabels([d.strftime("%b %d") for d in top10["Start Date"]])
-        ax.set_title("Top 10 Holiday Timelines")
+        ax.set_yticklabels(
+            [d.strftime("%d %b") for d in top10["Start Date"]]
+        )
+        ax.set_xlabel("Date")
+        ax.set_title("Top 10 Holiday Opportunities Timeline")
         st.pyplot(fig)
+    else:
+        st.info("No data available for timeline view.")
+
