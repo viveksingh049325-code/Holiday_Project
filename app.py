@@ -78,16 +78,12 @@ st.sidebar.caption("Adjust inputs to recalculate results instantly")
 annual_pto = st.sidebar.slider("Annual PTO Budget", 0, 30, 15)
 
 options = get_global_rankings(data, annual_pto)
-# --- Highlight best option ---
+# --- Highlight best overall option ---
 if not options.empty:
-    best = matches.iloc[0]
-
-st.success("🏆 Best Recommendation")
-st.write(f"{best['Start Date'].date()} → {best['End Date'].date()}")
-st.write(f"{best['Duration']} days | PTO: {best['PTO Cost']}")
-
-st.subheader("Other Valid Options")
-st.dataframe(matches.head(5), width="stretch")
+    best = options.iloc[0]   # ✅ CORRECT
+    st.success("🏆 Best Overall Recommendation")
+    st.write(f"📅 {best['Start Date'].date()} → {best['End Date'].date()}")
+    st.write(f"🕒 {best['Duration']} days | PTO: {best['PTO Cost']}")
 
 
 # ---------------- GLOBAL TABLE ----------------
@@ -136,13 +132,19 @@ if st.button("Search"):
     ]
 
     if not matches.empty:
-        best = matches.iloc[0]
-        st.success("✅ Combination Found!")
-        st.write(f"📅 {best['Start Date'].date()} → {best['End Date'].date()}")
-        st.write(f"🕒 {best['Duration']} days")
-        st.write(f"🏖 PTO Cost: {best['PTO Cost']}")
+        best_match = matches.iloc[0]
+
+        st.success("🏆 Best Personalized Recommendation")
+        st.write(f"📅 {best_match['Start Date'].date()} → {best_match['End Date'].date()}")
+        st.write(f"🕒 {best_match['Duration']} days | PTO: {best_match['PTO Cost']}")
+
+        if len(matches) > 1:
+            st.subheader("Other Valid Options")
+            st.dataframe(matches.iloc[1:6], width="stretch")
+
     else:
-        st.error("No matching combination found.")
+        st.error("No matching combinations found.")
+
 
 # ---------------- VISUALIZATIONS ----------------
 st.divider()
