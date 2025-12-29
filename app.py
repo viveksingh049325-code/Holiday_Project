@@ -69,6 +69,9 @@ def get_global_rankings(df, pto_limit):
 
             if df.iloc[j]["is_free"]:
                 duration = j - i + 1
+                # 🚫 Skip plain 2-day weekends
+                if duration <= 2 and pto_needed == 0 and window["is_holiday"].sum() == 0:
+                    continue
 
                 # ✅ CORRECT 0-PTO HANDLING
                 if pto_needed == 0:
