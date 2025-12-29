@@ -52,9 +52,6 @@ def load_and_process_data(file_path, include_rh):
     df["month"] = df["date"].dt.strftime("%B")
 
     return df
-
-data = load_and_process_data("2018.csv",  include_rh )
-
 # ---------------- ALGORITHM ----------------
 def get_global_rankings(df, pto_limit):
     results = []
@@ -94,6 +91,8 @@ if not options.empty:
     st.success("🏆 Best Overall Recommendation")
     st.write(f"📅 {best['Start Date'].date()} → {best['End Date'].date()}")
     st.write(f"🕒 {best['Duration']} days | PTO: {best['PTO Cost']}")
+
+data = load_and_process_data("2018.csv",  include_rh )
 
 
 # ---------------- GLOBAL TABLE ----------------
