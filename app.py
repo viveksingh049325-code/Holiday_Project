@@ -19,7 +19,7 @@ st.markdown("""
 
 # ---------------- DATA LOADING ----------------
 @st.cache_data
-def load_and_process_data(file_path):
+def load_and_process_data(file_path, include_rh):
     df = pd.read_csv(file_path)
     df.columns = [c.lower().strip() for c in df.columns]
     df["date"] = pd.to_datetime(df["date"])
@@ -30,13 +30,18 @@ def load_and_process_data(file_path):
 
     df = calendar.merge(df, on="date", how="left")
     df["holiday"] = df["holiday"].fillna("Working Day")
-    df["is_holiday"] = df["holiday"] != "Working Day"
+    df["is_restricted"] = df["holiday"].str.contains(r"\(RH\)", regex=True)
+    if include_rh:
+         df["is_holiday"] = df["holiday"] != "Working Day"
+    else:
+        df["is_holiday"] = (df["holiday"] != "Working Day") & (~df["is_restricted"])
+
     df["is_free"] = df["is_weekend"] | df["is_holiday"]
     df["month"] = df["date"].dt.strftime("%B")
 
     return df
 
-data = load_and_process_data("2018.csv")
+data = load_and_process_data("2018.csv",  include_rh )
 
 # ---------------- ALGORITHM ----------------
 def get_global_rankings(df, pto_limit):
@@ -73,6 +78,12 @@ def get_global_rankings(df, pto_limit):
 
 # ---------------- SIDEBAR ----------------
 st.sidebar.header("⚙️ Vacation Preferences")
+include_rh = st.sidebar.checkbox(
+    "Include Restricted Holidays (RH)",
+    value=True,
+    help="If unchecked, restricted holidays will be treated as working days"
+)
+
 st.sidebar.caption("Adjust inputs to recalculate results instantly")
 
 annual_pto = st.sidebar.slider("Annual PTO Budget", 0, 30, 15)
