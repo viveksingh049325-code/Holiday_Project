@@ -7,7 +7,7 @@ import os
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="AI Holiday Maximizer", layout="wide")
 
-st.title("🌴 AI Holiday Maximizer — India (2018)")
+st.title("🌴 AI Holiday Maximizer — India")
 st.caption("Plan smarter vacations by combining weekends, holidays, and minimal PTO.")
 
 st.markdown("""
