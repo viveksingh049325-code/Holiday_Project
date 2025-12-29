@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
+
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="AI Holiday Maximizer", layout="wide")
@@ -22,6 +24,11 @@ include_rh = st.sidebar.checkbox(
     "Include Restricted Holidays (RH)",
     value=True,
     help="If unchecked, RH will be treated as working days"
+)
+year = st.sidebar.selectbox(
+    "Select Year",
+    options=[2018, 2026, 2027],
+    index=0
 )
 
 annual_pto = st.sidebar.slider("Annual PTO Budget", 0, 30, 15)
@@ -85,7 +92,13 @@ def get_global_rankings(df, pto_limit):
     )
 
 # ---------------- DATA EXECUTION ----------------
-data = load_and_process_data("2018.csv", include_rh)
+csv_file = f"{year}.csv"
+if not os.path.exists(csv_file):
+    st.error(f"Holiday data for {year} not available.")
+    st.stop()
+
+data = load_and_process_data(csv_file, include_rh)
+
 options = get_global_rankings(data, annual_pto)
 
 # ---------------- GLOBAL RESULTS ----------------
