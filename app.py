@@ -3,19 +3,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="AI Holiday Maximizer", layout="wide")
 
 st.title("🌴 AI Holiday Maximizer — India")
 st.caption("Plan smarter vacations by combining weekends, holidays, and minimal PTO.")
-
-st.markdown("""
-**How it works**
-- 📅 Detects weekends + public holidays  
-- 🧠 Finds optimal vacation windows  
-- 🏖 Maximizes break length per PTO day  
-""")
 
 # ---------------- SIDEBAR ----------------
 st.sidebar.header("⚙️ Vacation Preferences")
@@ -25,6 +17,7 @@ include_rh = st.sidebar.checkbox(
     value=True,
     help="If unchecked, RH will be treated as working days"
 )
+
 year = st.sidebar.selectbox(
     "Select Year",
     options=[2018, 2026, 2027],
@@ -58,7 +51,7 @@ def load_and_process_data(file_path, include_rh):
 
     return df
 
-# ---------------- ALGORITHM ----------------
+# ---------------- ALGORITHM (FIXED 0-PTO LOGIC) ----------------
 def get_global_rankings(df, pto_limit):
     results = []
     n = len(df)
@@ -67,7 +60,7 @@ def get_global_rankings(df, pto_limit):
         if not df.iloc[i]["is_free"]:
             continue
 
-        for j in range(i + 2, n):
+        for j in range(i + 1, n):
             window = df.iloc[i:j + 1]
             pto_needed = (~window["is_free"]).sum()
 
@@ -76,20 +69,39 @@ def get_global_rankings(df, pto_limit):
 
             if df.iloc[j]["is_free"]:
                 duration = j - i + 1
-                efficiency = duration / max(pto_needed, 1)
+
+                # ✅ CORRECT 0-PTO HANDLING
+                if pto_needed == 0:
+                    efficiency = float("inf")
+                else:
+                    efficiency = duration / pto_needed
 
                 results.append({
                     "Start Date": df.iloc[i]["date"],
                     "End Date": df.iloc[j]["date"],
                     "Duration": duration,
                     "PTO Cost": pto_needed,
-                    "Efficiency": round(efficiency, 2),
+                    "Efficiency": efficiency,
                     "Month": df.iloc[i]["month"]
                 })
 
-    return pd.DataFrame(results).sort_values(
-        ["Efficiency", "Duration"], ascending=False
+    results_df = pd.DataFrame(results)
+
+    if results_df.empty:
+        return results_df
+
+    # Sort correctly: 0-PTO (∞) first, then longer duration
+    results_df = results_df.sort_values(
+        by=["Efficiency", "Duration"],
+        ascending=[False, False]
     )
+
+    # Display-friendly efficiency
+    results_df["Efficiency Display"] = results_df["Efficiency"].apply(
+        lambda x: "∞ (No PTO)" if x == float("inf") else round(x, 2)
+    )
+
+    return results_df
 
 # ---------------- DATA EXECUTION ----------------
 csv_file = f"{year}.csv"
@@ -98,7 +110,6 @@ if not os.path.exists(csv_file):
     st.stop()
 
 data = load_and_process_data(csv_file, include_rh)
-
 options = get_global_rankings(data, annual_pto)
 
 # ---------------- GLOBAL RESULTS ----------------
@@ -110,13 +121,18 @@ if not options.empty:
     st.write(f"📅 {best['Start Date'].date()} → {best['End Date'].date()}")
     st.write(f"🕒 {best['Duration']} days | PTO: {best['PTO Cost']}")
 
-    st.dataframe(options.head(20), width="stretch")
+    st.dataframe(
+        options[[
+            "Start Date", "End Date", "Duration",
+            "PTO Cost", "Efficiency Display", "Month"
+        ]],
+        width="stretch"
+    )
 
-    csv_all = options.to_csv(index=False).encode("utf-8")
     st.download_button(
         "⬇ Download All Results (CSV)",
-        csv_all,
-        "holiday_rankings_2018.csv",
+        options.to_csv(index=False).encode("utf-8"),
+        f"holiday_rankings_{year}.csv",
         "text/csv"
     )
 else:
@@ -135,7 +151,10 @@ with col2:
     min_days = st.number_input("Minimum break length", 1, 15, 4)
 
 with col3:
-    search_month = st.selectbox("Month", sorted(options["Month"].unique()))
+    search_month = st.selectbox(
+        "Month",
+        sorted(options["Month"].unique()) if not options.empty else []
+    )
 
 if st.button("Search"):
     matches = options[
@@ -153,7 +172,13 @@ if st.button("Search"):
 
         if len(matches) > 1:
             st.subheader("Other Valid Options")
-            st.dataframe(matches.iloc[1:6], width="stretch")
+            st.dataframe(
+                matches.iloc[1:10][[
+                    "Start Date", "End Date", "Duration",
+                    "PTO Cost", "Efficiency Display"
+                ]],
+                width="stretch"
+            )
     else:
         st.error("No matching combinations found.")
 
@@ -177,7 +202,7 @@ with tab2:
         fig, ax = plt.subplots(figsize=(12, 5))
 
         for i, row in enumerate(top10.itertuples()):
-            ax.barh(i, (row._2 - row._1).days, left=row._1)
+            ax.barh(i, (row.End_Date - row.Start_Date).days, left=row.Start_Date)
 
         ax.set_yticks(range(len(top10)))
         ax.set_yticklabels([d.strftime("%b %d") for d in top10["Start Date"]])
