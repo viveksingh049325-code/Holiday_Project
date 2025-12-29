@@ -15,7 +15,19 @@ st.markdown("""
 - 🧠 Finds optimal vacation windows  
 - 🏖 Maximizes break length per PTO day  
 """)
+#----------------- SIDEBAR ---------------------
+st.sidebar.header("⚙️ Vacation Preferences")
+include_rh = st.sidebar.checkbox(
+    "Include Restricted Holidays (RH)",
+    value=True,
+    help="If unchecked, restricted holidays will be treated as working days"
+)
 
+st.sidebar.caption("Adjust inputs to recalculate results instantly")
+
+annual_pto = st.sidebar.slider("Annual PTO Budget", 0, 30, 15)
+
+options = get_global_rankings(data, annual_pto)
 
 # ---------------- DATA LOADING ----------------
 @st.cache_data
@@ -76,19 +88,6 @@ def get_global_rankings(df, pto_limit):
         ["Efficiency", "Duration"], ascending=False
     )
 
-# ---------------- SIDEBAR ----------------
-st.sidebar.header("⚙️ Vacation Preferences")
-include_rh = st.sidebar.checkbox(
-    "Include Restricted Holidays (RH)",
-    value=True,
-    help="If unchecked, restricted holidays will be treated as working days"
-)
-
-st.sidebar.caption("Adjust inputs to recalculate results instantly")
-
-annual_pto = st.sidebar.slider("Annual PTO Budget", 0, 30, 15)
-
-options = get_global_rankings(data, annual_pto)
 # --- Highlight best overall option ---
 if not options.empty:
     best = options.iloc[0]   # ✅ CORRECT
