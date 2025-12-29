@@ -26,32 +26,6 @@ include_rh = st.sidebar.checkbox(
 st.sidebar.caption("Adjust inputs to recalculate results instantly")
 
 annual_pto = st.sidebar.slider("Annual PTO Budget", 0, 30, 15)
-
-options = get_global_rankings(data, annual_pto)
-
-# ---------------- DATA LOADING ----------------
-@st.cache_data
-def load_and_process_data(file_path, include_rh):
-    df = pd.read_csv(file_path)
-    df.columns = [c.lower().strip() for c in df.columns]
-    df["date"] = pd.to_datetime(df["date"])
-
-    all_dates = pd.date_range(df["date"].min(), df["date"].max())
-    calendar = pd.DataFrame({"date": all_dates})
-    calendar["is_weekend"] = calendar["date"].dt.weekday.isin([5, 6])
-
-    df = calendar.merge(df, on="date", how="left")
-    df["holiday"] = df["holiday"].fillna("Working Day")
-    df["is_restricted"] = df["holiday"].str.contains(r"\(RH\)", regex=True)
-    if include_rh:
-         df["is_holiday"] = df["holiday"] != "Working Day"
-    else:
-        df["is_holiday"] = (df["holiday"] != "Working Day") & (~df["is_restricted"])
-
-    df["is_free"] = df["is_weekend"] | df["is_holiday"]
-    df["month"] = df["date"].dt.strftime("%B")
-
-    return df
 # ---------------- ALGORITHM ----------------
 def get_global_rankings(df, pto_limit):
     results = []
@@ -91,6 +65,32 @@ if not options.empty:
     st.success("🏆 Best Overall Recommendation")
     st.write(f"📅 {best['Start Date'].date()} → {best['End Date'].date()}")
     st.write(f"🕒 {best['Duration']} days | PTO: {best['PTO Cost']}")
+options = get_global_rankings(data, annual_pto)
+
+# ---------------- DATA LOADING ----------------
+@st.cache_data
+def load_and_process_data(file_path, include_rh):
+    df = pd.read_csv(file_path)
+    df.columns = [c.lower().strip() for c in df.columns]
+    df["date"] = pd.to_datetime(df["date"])
+
+    all_dates = pd.date_range(df["date"].min(), df["date"].max())
+    calendar = pd.DataFrame({"date": all_dates})
+    calendar["is_weekend"] = calendar["date"].dt.weekday.isin([5, 6])
+
+    df = calendar.merge(df, on="date", how="left")
+    df["holiday"] = df["holiday"].fillna("Working Day")
+    df["is_restricted"] = df["holiday"].str.contains(r"\(RH\)", regex=True)
+    if include_rh:
+         df["is_holiday"] = df["holiday"] != "Working Day"
+    else:
+        df["is_holiday"] = (df["holiday"] != "Working Day") & (~df["is_restricted"])
+
+    df["is_free"] = df["is_weekend"] | df["is_holiday"]
+    df["month"] = df["date"].dt.strftime("%B")
+
+    return df
+
 
 data = load_and_process_data("2018.csv",  include_rh )
 
