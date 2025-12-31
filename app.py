@@ -254,10 +254,10 @@ with tab2:
                 color=color
             )
 
-            ax.text(
-                row.Start_Date,
+            ax.text (
+                row._1,
                 i,
-                f" {row.Duration} days",
+                f" {row._3} days",
                 va="center",
                 color="white",
                 fontsize=9
