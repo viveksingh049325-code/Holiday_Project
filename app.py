@@ -243,25 +243,26 @@ with tab2:
 
         fig, ax = plt.subplots(figsize=(12, 5))
 
-        for i, row in enumerate(top10.itertuples()):
-            length = (row._2 - row._1).days
-            color = "green" if row._6 else "steelblue"  # Bridge highlight
+        for i, row in top10.iterrows():
+            length = (row["End Date"] - row["Start Date"]).days
+            color = "green" if row["Bridge Opportunity"] else "steelblue"
 
             ax.barh(
                 i,
                 length,
-                left=row._1,
+                left=row["Start Date"],
                 color=color
             )
 
-            ax.text (
-                row._1,
+            ax.text(
+                row["Start Date"],
                 i,
-                f" {row._3} days",
+                f" {row['Duration']} days",
                 va="center",
                 color="white",
                 fontsize=9
             )
+
 
         ax.set_yticks(range(len(top10)))
         ax.set_yticklabels(
