@@ -237,26 +237,20 @@ with tab1:
         st.info("No data available for plotting.")
 
 # ---------- TAB 2: Timeline View ----------
-plot_df = top10.rename(columns={
-    "Start Date": "Start_Date",
-    "End Date": "End_Date",
-    "Bridge Opportunity": "Bridge"
-})
-
 with tab2:
     if not options.empty:
         top10 = options.head(10).sort_values("Start Date")
 
         fig, ax = plt.subplots(figsize=(12, 5))
 
-        for i, row in plot_df.iterrows():
-            length = (row.End_Date - row.Start_Date).days
-            color = "green" if row.Bridge else "steelblue"  # Bridge highlight
+        for i, row in enumerate(top10.itertuples()):
+            length = (row._2 - row._1).days
+            color = "green" if row._6 else "steelblue"  # Bridge highlight
 
             ax.barh(
                 i,
                 length,
-                left=row.Start_Date,
+                left=row._1,
                 color=color
             )
 
