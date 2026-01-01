@@ -249,51 +249,55 @@ with tab1:
 with tab2:
     if not top10.empty:
 
-        # ---- SAFETY: convert to datetime ----
+        # ---- Prepare data safely ----
         plot_df = top10.copy()
-        plot_df["Start Date"] = pd.to_datetime(plot_df["Start Date"])
-        plot_df["End Date"] = pd.to_datetime(plot_df["End Date"])
+
+        plot_df["Start_Date"] = pd.to_datetime(plot_df["Start Date"])
+        plot_df["End_Date"] = pd.to_datetime(plot_df["End Date"])
 
         fig, ax = plt.subplots(figsize=(14, 6))
 
-        y_positions = range(len(plot_df))
+        for i, row in plot_df.iterrows():
+            duration = (row["End_Date"] - row["Start_Date"]).days
 
-        for i, row in enumerate(plot_df.itertuples()):
-            duration = (row.End_Date - row.Start_Date).days
-
-            # force visual width
+            # ensure visibility
             visual_days = max(duration, 5)
 
-            color = "green" if getattr(row, "Bridge Opportunity", False) else "steelblue"
+            color = (
+                "green"
+                if plot_df.columns.str.contains("Bridge").any()
+                and row.get("Bridge Opportunity", False)
+                else "steelblue"
+            )
 
             ax.barh(
-                i,
-                visual_days,
-                left=row.Start_Date,
+                y=i,
+                width=visual_days,
+                left=row["Start_Date"],
                 height=0.55,
                 color=color
             )
 
             ax.text(
-                row.Start_Date,
+                row["Start_Date"],
                 i,
-                f" {row.Duration} days",
+                f" {duration} days",
                 va="center",
                 fontsize=9,
                 color="white"
             )
 
-        # ---- y-axis labels ----
-        ax.set_yticks(list(y_positions))
+        # ---- Y-axis labels ----
+        ax.set_yticks(range(len(plot_df)))
         ax.set_yticklabels([
-            f"{r['Start Date'].strftime('%b %d')} → {r['End Date'].strftime('%b %d')}"
+            f"{r['Start_Date'].strftime('%b %d')} → {r['End_Date'].strftime('%b %d')}"
             for _, r in plot_df.iterrows()
         ])
 
-        # ---- x-axis zoom to data ----
+        # ---- Zoom x-axis to data ----
         ax.set_xlim(
-            plot_df["Start Date"].min() - pd.Timedelta(days=5),
-            plot_df["End Date"].max() + pd.Timedelta(days=5)
+            plot_df["Start_Date"].min() - pd.Timedelta(days=5),
+            plot_df["End_Date"].max() + pd.Timedelta(days=5)
         )
 
         ax.set_title("Top 10 Holiday Opportunities Timeline")
