@@ -200,6 +200,15 @@ if st.button("Search"):
 # ---------------- VISUAL ANALYTICS ----------------
 st.divider()
 st.header("📈 Holiday Visual Insights")
+top10 = pd.DataFrame()
+
+if not options.empty:
+    top10 = (
+        options
+        .sort_values(["Efficiency", "Duration"], ascending=False)
+        .head(10)
+        .reset_index(drop=True)
+    )
 
 tab1, tab2 = st.tabs(["Efficiency Map", "Timeline View"])
 
