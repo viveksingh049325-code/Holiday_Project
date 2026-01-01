@@ -238,39 +238,60 @@ with tab1:
 
 # ---------- TAB 2: Timeline View ----------
 with tab2:
-    if not options.empty:
-        top10 = options.head(10).sort_values("Start Date")
+    if not top10.empty:
 
-        fig, ax = plt.subplots(figsize=(12, 5))
+        # ---- SAFETY: convert to datetime ----
+        plot_df = top10.copy()
+        plot_df["Start Date"] = pd.to_datetime(plot_df["Start Date"])
+        plot_df["End Date"] = pd.to_datetime(plot_df["End Date"])
 
-        for i, row in top10.iterrows():
-            length = (row["End Date"] - row["Start Date"]).days
-            color = "green" if row["Bridge Opportunity"] else "steelblue"
+        fig, ax = plt.subplots(figsize=(14, 6))
+
+        y_positions = range(len(plot_df))
+
+        for i, row in enumerate(plot_df.itertuples()):
+            duration = (row.End_Date - row.Start_Date).days
+
+            # force visual width
+            visual_days = max(duration, 5)
+
+            color = "green" if getattr(row, "Bridge Opportunity", False) else "steelblue"
 
             ax.barh(
                 i,
-                length,
-                left=row["Start Date"],
+                visual_days,
+                left=row.Start_Date,
+                height=0.55,
                 color=color
             )
 
             ax.text(
-                row["Start Date"],
+                row.Start_Date,
                 i,
-                f" {row['Duration']} days",
+                f" {row.Duration} days",
                 va="center",
-                color="white",
-                fontsize=9
+                fontsize=9,
+                color="white"
             )
 
+        # ---- y-axis labels ----
+        ax.set_yticks(list(y_positions))
+        ax.set_yticklabels([
+            f"{r['Start Date'].strftime('%b %d')} → {r['End Date'].strftime('%b %d')}"
+            for _, r in plot_df.iterrows()
+        ])
 
-        ax.set_yticks(range(len(top10)))
-        ax.set_yticklabels(
-            [d.strftime("%d %b") for d in top10["Start Date"]]
+        # ---- x-axis zoom to data ----
+        ax.set_xlim(
+            plot_df["Start Date"].min() - pd.Timedelta(days=5),
+            plot_df["End Date"].max() + pd.Timedelta(days=5)
         )
-        ax.set_xlabel("Date")
+
         ax.set_title("Top 10 Holiday Opportunities Timeline")
+        ax.set_xlabel("Date")
+
+        plt.tight_layout()
         st.pyplot(fig)
+
     else:
         st.info("No data available for timeline view.")
-
